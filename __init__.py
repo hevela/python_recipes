@@ -11,14 +11,13 @@ import string
 import re
 from urlparse import urlparse
 from django.core.validators import email_re
-from django.utils import timezone
-
 
 #-----libs for write_pdf
 #import cgi
 #import StringIO
 #from django.template.loader import get_template
 #from xhtml2pdf import pisa
+
 
 def get_hour_from_datetime(datetime_input):
     hour_datetime = datetime(year=datetime_input.year,
@@ -49,7 +48,8 @@ def get_week_start_datetime_end_datetime_tuple(
 
     """
     first_day_of_month = datetime(year=year, month=month, day=1)
-    first_day_of_first_week = first_day_of_month - timedelta(days=first_day_of_month.weekday())
+    first_day_of_first_week = first_day_of_month - timedelta(
+        days=first_day_of_month.weekday())
     week_delta = timedelta(weeks=1)
     week_number = 1
     first_day_of_week = first_day_of_first_week
@@ -68,14 +68,6 @@ def get_week_start_datetime_end_datetime_tuple(
     return week_start, week_end
 
 
-def get_weeks_number_in_month(
-        year,
-        month
-):
-    # TODO - Implement this function
-    pass
-
-
 def get_week_of_month_from_datetime(datetime_variable):
     """Get the week number of the month for a datetime
 
@@ -84,7 +76,8 @@ def get_week_of_month_from_datetime(datetime_variable):
     """
     first_day_of_month = datetime(year=datetime_variable.year,
         month=datetime_variable.month, day=1)
-    first_day_first_week = first_day_of_month - timedelta(days=first_day_of_month.weekday())
+    first_day_first_week = first_day_of_month - timedelta(
+        days=first_day_of_month.weekday())
     week_delta = timedelta(weeks = 1)
     datetime_next = first_day_first_week + week_delta
     week_number = 1
@@ -95,6 +88,7 @@ def get_week_of_month_from_datetime(datetime_variable):
     return week_number
 
 
+#noinspection PyUnusedLocal
 def random_string_generator(size=6, chars=string.ascii_uppercase + string.digits):
     """Random String Generator
 
@@ -102,9 +96,9 @@ def random_string_generator(size=6, chars=string.ascii_uppercase + string.digits
     :param chars: caracteres de entre los que generara la cadena
                   (default [A-Z0-9])
     :return: generated random string
-    >>> id_generator()
+    >>> random_string_generator()
     'G5G74W'
-    >>> id_generator(3, "6793YUIO")
+    >>> random_string_generator(3, "6793YUIO")
     'Y3U'
 
     """
@@ -143,10 +137,10 @@ def validate_url(url):
         return False
 
 
-def validate_string(string):
+def validate_string(strng):
     """Checks for non word chars in a unicode string
 
-    :param string: string object, the string to validate
+    :param strng: string object, the string to validate
     :return: boolean, True if valid, False if not
     >>> validate_string("http://google.com")
     False
@@ -154,12 +148,12 @@ def validate_string(string):
     True
 
     """
-    if not isinstance(string, str) and not isinstance(string, unicode):
+    if not isinstance(strng, str) and not isinstance(strng, unicode):
         return False
-    arePat = re.compile(r'[^\w\s\-\'\."]', re.UNICODE)
-    string_arr = string.split(" ")
+    pattern = re.compile(r'[^\w\s\-\'\."]', re.UNICODE)
+    string_arr = strng.split(" ")
     for i in string_arr:
-        if i == "" or arePat.search(i):
+        if i == "" or pattern.search(i):
             return False
     return True
 
@@ -330,10 +324,10 @@ def scale_dimensions(width, height, longest_side):
     return width, height
 
 
-def convert_to_utc(time, tz):
+def convert_to_utc(time_v, tz):
     """ Convert a time in a tz timezone to a utc time
 
-    :param time: time object in utc time
+    :param time_v: time object in utc time
     :param tz: the timezone to convert the time to utc
     :return: adjusted time, offset hours
     """
@@ -342,7 +336,7 @@ def convert_to_utc(time, tz):
     #get a date object
     date_dt = now_dt.date()
     #combine the current date object with our given time object
-    dt = datetime.combine(date_dt, time)
+    dt = datetime.combine(date_dt, time_v)
     #get an timezone object for the source timezone
     src_tz = pytz.timezone(str(tz))
     #stamp the source datetime object with the src timezone
@@ -355,20 +349,21 @@ def convert_to_utc(time, tz):
     return utc_dt.time(), int(offset)
 
 
-def convert_from_utc(time, tz):
+def convert_from_utc(time_v, tz):
     """ Convert a utc time to a tz timezone time
 
-    :param time: time object in utc time
+    :param time_v: time object in utc time
     :param tz: the timezone to convert the time to
     :return: adjusted time
     """
     now_dt = datetime.now()
     date = now_dt.date()
-    dt = datetime.combine(date, time)
+    dt = datetime.combine(date, time_v)
     dest = pytz.timezone(str(tz))
     dt = dt.replace(tzinfo=pytz.utc)
     dest_dt = dt.astimezone(dest)
     return dest_dt.time()
+
 
 def timed(f):
     """Measures the time(seconds) a f function takes to return a result
