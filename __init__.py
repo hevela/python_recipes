@@ -89,7 +89,8 @@ def get_week_of_month_from_datetime(datetime_variable):
 
 
 #noinspection PyUnusedLocal
-def random_string_generator(size=6, chars=string.ascii_uppercase + string.digits):
+def random_string_generator(size=6,
+                            chars=string.ascii_uppercase + string.digits):
     """Random String Generator
 
     :param size: longitud de la cadena (default 6)
@@ -117,7 +118,8 @@ def random_string_generator(size=6, chars=string.ascii_uppercase + string.digits
 #        html.encode("ISO-8859-1")), result)
 #    if not pdf.err:
 #        return HttpResponse(result.getvalue(), mimetype='application/pdf')
-#    return HttpResponse("Los Gremlin's se comieron tu PDF! %s" % cgi.escape(html))
+#    return HttpResponse(
+#        "Los Gremlin's se comieron tu PDF! %s" % cgi.escape(html))
 
 def validate_url(url):
     """Checks if a url is valid
