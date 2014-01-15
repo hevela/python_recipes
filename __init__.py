@@ -139,6 +139,29 @@ def validate_url(url):
         return False
 
 
+def validate_username(strng):
+    """Checks for a valid username (alphanumeric with underscores/hypens/dots)
+
+    :param strng: string object, the string to validate
+    :return: boolean, True if valid, False if not
+    >>> validate_string("http://google.com")
+    False
+    >>> validate_string("así.es_el-abarrote01")
+    True
+    """
+    if not isinstance(strng, str) and not isinstance(strng, unicode):
+        return False
+    if isinstance(strng, str):
+        strng = unicode(strng.decode("utf-8"))
+    pattern = re.compile(r'[^\w\s\-\._"]', re.UNICODE)
+
+    string_arr = strng.split(" ")
+    for i in string_arr:
+        if i == "" or pattern.search(i):
+            return False
+    return True
+
+
 def validate_string(strng):
     """Checks for non word chars in a unicode string
 
@@ -152,6 +175,8 @@ def validate_string(strng):
     """
     if not isinstance(strng, str) and not isinstance(strng, unicode):
         return False
+    if isinstance(strng, str):
+        strng = unicode(strng.decode("utf-8"))
     pattern = re.compile(r'[^\w\s\-\'\."]', re.UNICODE)
     string_arr = strng.split(" ")
     for i in string_arr:
@@ -200,10 +225,10 @@ def get_post_data(post):
         else:
             #si es un numero entero
             if dato%1 == 0:
-                datos_post[str(postdata)]=long(dato)
+                datos_post[str(postdata)] = long(dato)
             else:
                 #si tiene decimales
-                datos_post[str(postdata)]=float(dato)
+                datos_post[str(postdata)] = float(dato)
     return datos_post
 
 
