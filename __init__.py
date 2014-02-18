@@ -1,15 +1,18 @@
 # -*- coding: utf-8 -*-
-from datetime import datetime, timedelta
+import datetime
 import pytz
-from functools import wraps
-from time import time
-from decimal import Decimal
+import json
 import decimal
-from decimal import InvalidOperation
+import time
+
 import random
 import string
 import re
+
+from functools import wraps
 from urlparse import urlparse
+
+from django.shortcuts import HttpResponse
 from django.core.validators import email_re
 
 #-----libs for write_pdf
@@ -19,12 +22,32 @@ from django.core.validators import email_re
 #from xhtml2pdf import pisa
 
 
+def response_json(content, status_code):
+    """
+    django function only
+    Takes a dictionary or value and
+    @param content:
+    @param status_code:
+    @return:
+    """
+    if not hasattr(content, '__iter__'):
+        try:
+            content = json.loads(content)
+        except ValueError:
+            content = dict(data=content)
+    content = json.dumps(content)
+    return HttpResponse(content=content,
+                        status=status_code,
+                        mimetype='application/json')
+
+
 def get_hour_from_datetime(datetime_input):
-    hour_datetime = datetime(year=datetime_input.year,
-                             month=datetime_input.month,
-                             day=datetime_input.day,
-                             hour=datetime_input.hour,
-                             tzinfo=datetime_input.tzinfo)
+    hour_datetime = datetime.datetime(
+        year=datetime_input.year,
+        month=datetime_input.month,
+        day=datetime_input.day,
+        hour=datetime_input.hour,
+        tzinfo=datetime_input.tzinfo)
 
     return hour_datetime
 
@@ -47,15 +70,15 @@ def get_week_start_datetime_end_datetime_tuple(
     datetime.datetime(2013, 02, 25, 0, 0), datetime.datetime(2013, 1, 4, 0, 0)
 
     """
-    first_day_of_month = datetime(year=year, month=month, day=1)
-    first_day_of_first_week = first_day_of_month - timedelta(
+    first_day_of_month = datetime.datetime(year=year, month=month, day=1)
+    first_day_of_first_week = first_day_of_month - datetime.timedelta(
         days=first_day_of_month.weekday())
-    week_delta = timedelta(weeks=1)
+    week_delta = datetime.timedelta(weeks=1)
     week_number = 1
     first_day_of_week = first_day_of_first_week
     while (first_day_of_week + week_delta).year <= year and\
-          (first_day_of_week + week_delta).month <= month and\
-          week_number < week:
+          (first_day_of_week + week_delta).month <= month and week_number < \
+            week:
 
         week_number += 1
         first_day_of_week += week_delta
@@ -74,11 +97,12 @@ def get_week_of_month_from_datetime(datetime_variable):
     :param datetime_variable: the date
     :returns: the week number (int)
     """
-    first_day_of_month = datetime(year=datetime_variable.year,
+    first_day_of_month = datetime.datetime(
+        year=datetime_variable.year,
         month=datetime_variable.month, day=1)
-    first_day_first_week = first_day_of_month - timedelta(
+    first_day_first_week = first_day_of_month - datetime.timedelta(
         days=first_day_of_month.weekday())
-    week_delta = timedelta(weeks = 1)
+    week_delta = datetime.timedelta(weeks=1)
     datetime_next = first_day_first_week + week_delta
     week_number = 1
     while datetime_next <= datetime_variable:
@@ -219,12 +243,12 @@ def get_post_data(post):
         dato = post[str(postdata)].strip()
 
         try:
-            dato = Decimal(dato)
-        except InvalidOperation:
+            dato = decimal.Decimal(dato)
+        except decimal.InvalidOperation:
             datos_post[str(postdata)] = post[str(postdata)]
         else:
             #si es un numero entero
-            if dato%1 == 0:
+            if dato % 1 == 0:
                 datos_post[str(postdata)] = long(dato)
             else:
                 #si tiene decimales
@@ -246,20 +270,20 @@ def moneyfmt(value, places=2, curr='', sep=',', dp='.',
     :param trailneg:optional trailing minus indicator:  '-', ')', space or blank
     :return: formatted string
 
-    >>> d = Decimal('-1234567.8901')
+    >>> d = decimal.Decimal('-1234567.8901')
     >>> moneyfmt(d, curr='$')
     '-$1,234,567.89'
     >>> moneyfmt(d, places=0, sep='.', dp='', neg='', trailneg='-')
     '1.234.568-'
     >>> moneyfmt(d, curr='$', neg='(', trailneg=')')
     '($1,234,567.89)'
-    >>> moneyfmt(Decimal(123456789), sep=' ')
+    >>> moneyfmt(decimal.Decimal(123456789), sep=' ')
     '123 456 789.00'
-    >>> moneyfmt(Decimal('-0.02'), neg='<', trailneg='>')
+    >>> moneyfmt(decimal.Decimal('-0.02'), neg='<', trailneg='>')
     '<0.02>'
 
     """
-    q = Decimal(10) ** -places      # 2 places --> '0.01'
+    q = decimal.Decimal(10) ** -places      # 2 places --> '0.01'
     sign, digits, exp = value.quantize(q).as_tuple()
     result = []
     digits = map(str, digits)
@@ -298,7 +322,7 @@ def is_number(number):
 
     """
     try:
-        dato = Decimal(number)
+        dato = decimal.Decimal(number)
     except decimal.InvalidOperation:
         return False
     else:
@@ -359,11 +383,11 @@ def convert_to_utc(time_v, tz):
     :return: adjusted time, offset hours
     """
 
-    now_dt = datetime.utcnow()
+    now_dt = datetime.datetime.utcnow()
     #get a date object
     date_dt = now_dt.date()
     #combine the current date object with our given time object
-    dt = datetime.combine(date_dt, time_v)
+    dt = datetime.datetime.combine(date_dt, time_v)
     #get an timezone object for the source timezone
     src_tz = pytz.timezone(str(tz))
     #stamp the source datetime object with the src timezone
@@ -383,9 +407,9 @@ def convert_from_utc(time_v, tz):
     :param tz: the timezone to convert the time to
     :return: adjusted time
     """
-    now_dt = datetime.now()
+    now_dt = datetime.datetime.now()
     date = now_dt.date()
-    dt = datetime.combine(date, time_v)
+    dt = datetime.datetime.combine(date, time_v)
     dest = pytz.timezone(str(tz))
     dt = dt.replace(tzinfo=pytz.utc)
     dest_dt = dt.astimezone(dest)
@@ -401,9 +425,9 @@ def timed(f):
 
     @wraps(f)
     def wrapper(*args, **kwds):
-        start = time()
+        start = time.time()
         result = f(*args, **kwds)
-        elapsed = time() - start
+        elapsed = time.time() - start
         print "%s took %d seconds to finish" % (f.__name__, elapsed)
         return result
     return wrapper
