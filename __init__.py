@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import datetime
+import os
 import pytz
 import json
 import decimal
@@ -25,10 +26,13 @@ from django.core.validators import email_re
 def response_json(content, status_code):
     """
     django function only
-    Takes a dictionary or value and
-    @param content:
-    @param status_code:
-    @return:
+    Takes a dictionary or value, encode them to json and return a HttpResponse
+    @param content: almost any object
+    @type content: object
+    @param status_code: http status code to return
+    @type status_code: int
+    @return: json response
+    @rtype: HttpResponse
     """
     if not hasattr(content, '__iter__'):
         try:
@@ -41,17 +45,6 @@ def response_json(content, status_code):
                         mimetype='application/json')
 
 
-def get_hour_from_datetime(datetime_input):
-    hour_datetime = datetime.datetime(
-        year=datetime_input.year,
-        month=datetime_input.month,
-        day=datetime_input.day,
-        hour=datetime_input.hour,
-        tzinfo=datetime_input.tzinfo)
-
-    return hour_datetime
-
-
 def get_week_start_datetime_end_datetime_tuple(
         year,
         month,
@@ -59,10 +52,10 @@ def get_week_start_datetime_end_datetime_tuple(
 ):
     """gets the first and the last day of a given number of week of month
 
-    :param year: integer 4 digits
-    :param month: integer 1 or 2 digits
-    :param week: integer 1 or 2 digits
-    :return: tuple of the first and the last day datetime objects
+    @param year: integer 4 digits
+    @param month: integer 1 or 2 digits
+    @param week: integer 1 or 2 digits
+    @return: tuple of the first and the last day datetime objects
 
     >>> get_week_start_datetime_end_datetime_tuple(2013, 01, 01)
     datetime.datetime(2012, 12, 31, 0, 0), datetime.datetime(2013, 1, 7, 0, 0)
@@ -94,8 +87,8 @@ def get_week_start_datetime_end_datetime_tuple(
 def get_week_of_month_from_datetime(datetime_variable):
     """Get the week number of the month for a datetime
 
-    :param datetime_variable: the date
-    :returns: the week number (int)
+    @param datetime_variable: the date
+    @returns: the week number (int)
     """
     first_day_of_month = datetime.datetime(
         year=datetime_variable.year,
@@ -117,10 +110,10 @@ def random_string_generator(size=6,
                             chars=string.ascii_uppercase + string.digits):
     """Random String Generator
 
-    :param size: longitud de la cadena (default 6)
-    :param chars: caracteres de entre los que generara la cadena
+    @param size: longitud de la cadena (default 6)
+    @param chars: caracteres de entre los que generara la cadena
                   (default [A-Z0-9])
-    :return: generated random string
+    @return: generated random string
     >>> random_string_generator()
     'G5G74W'
     >>> random_string_generator(3, "6793YUIO")
@@ -148,8 +141,8 @@ def random_string_generator(size=6,
 def validate_url(url):
     """Checks if a url is valid
 
-    :param url: string object, the url to validate
-    :return: boolean, True if valid, False if not
+    @param url: string object, the url to validate
+    @return: boolean, True if valid, False if not
     >>> validate_url("http://google.com")
     True
     >>> validate_url("asieselabarrote")
@@ -166,8 +159,8 @@ def validate_url(url):
 def validate_username(strng):
     """Checks for a valid username (alphanumeric with underscores/hypens/dots)
 
-    :param strng: string object, the string to validate
-    :return: boolean, True if valid, False if not
+    @param strng: string object, the string to validate
+    @return: boolean, True if valid, False if not
     >>> validate_string("http://google.com")
     False
     >>> validate_string("así.es_el-abarrote01")
@@ -189,8 +182,8 @@ def validate_username(strng):
 def validate_string(strng):
     """Checks for non word chars in a unicode string
 
-    :param strng: string object, the string to validate
-    :return: boolean, True if valid, False if not
+    @param strng: string object, the string to validate
+    @return: boolean, True if valid, False if not
     >>> validate_string("http://google.com")
     False
     >>> validate_string("así es el abarrote")
@@ -212,8 +205,8 @@ def validate_string(strng):
 def unique_from_array(array):
     """takes an array and removes duplicates
 
-    :param array: array object, the array to evaluate
-    :returns: an array with unique values
+    @param array: array object, the array to evaluate
+    @returns: an array with unique values
 
     >>> unique_from_array([1, 23, 32, 1, 23, 44, 2, 1])
     [1, 23, 32, 44, 2]
@@ -234,8 +227,8 @@ def get_post_data(post):
     """cleans the post dictionary data, turns the strings into str(),
     and the numbers into long or float
 
-    :param post: dictionary
-    :return: a dict with the same keys
+    @param post: dictionary
+    @return: a dict with the same keys
 
     """
     datos_post = {}
@@ -260,15 +253,15 @@ def moneyfmt(value, places=2, curr='', sep=',', dp='.',
              pos='', neg='-', trailneg=''):
     """Convert Decimal to a money( or number ) formatted string.
 
-    :param places:  required number of places after the decimal point
-    :param curr:    optional currency symbol before the sign (may be blank)
-    :param sep:     optional grouping separator (comma, period, space, or blank)
-    :param dp:      decimal point indicator (comma or period)
+    @param places:  required number of places after the decimal point
+    @param curr:    optional currency symbol before the sign (may be blank)
+    @param sep:     optional grouping separator (comma, period, space, or blank)
+    @param dp:      decimal point indicator (comma or period)
              only specify as blank when places is zero
-    :param pos:     optional sign for positive numbers: '+', space or blank
-    :param neg:     optional sign for negative numbers: '-', '(', space or blank
-    :param trailneg:optional trailing minus indicator:  '-', ')', space or blank
-    :return: formatted string
+    @param pos:     optional sign for positive numbers: '+', space or blank
+    @param neg:     optional sign for negative numbers: '-', '(', space or blank
+    @param trailneg:optional trailing minus indicator:  '-', ')', space or blank
+    @return: formatted string
 
     >>> d = decimal.Decimal('-1234567.8901')
     >>> moneyfmt(d, curr='$')
@@ -310,8 +303,8 @@ def moneyfmt(value, places=2, curr='', sep=',', dp='.',
 def is_number(number):
     """ check if a string is number
 
-    :param number: string to evaluate
-    :return: false if not numeric, else returns digit(long or float)
+    @param number: string to evaluate
+    @return: false if not numeric, else returns digit(long or float)
 
     >>> is_number("233.33")
     233.33
@@ -339,8 +332,8 @@ def is_valid_email(email):
     """ check if a string is a valid email address
     django dependant
 
-    :param email: - the string to evaluate
-    :return: boolean, True if valid, False if not
+    @param email: - the string to evaluate
+    @return: boolean, True if valid, False if not
 
     >>> is_valid_email("hector@wime.com.mx")
     True
@@ -354,10 +347,10 @@ def scale_dimensions(width, height, longest_side):
     """ Calculates image ratio given a longest side
     returns a tupple with ajusted width, height
 
-    :param width:  integer, the current width of the image
-    :param height:  integer, the current height of the image
-    :param longest_side:   the longest side of the resized image
-    :return: resized width, height
+    @param width:  integer, the current width of the image
+    @param height:  integer, the current height of the image
+    @param longest_side:   the longest side of the resized image
+    @return: resized width, height
 
     >>> scale_dimensions(680, 480, 340)
     340, 240
@@ -378,9 +371,9 @@ def scale_dimensions(width, height, longest_side):
 def convert_to_utc(time_v, tz):
     """ Convert a time in a tz timezone to a utc time
 
-    :param time_v: time object in utc time
-    :param tz: the timezone to convert the time to utc
-    :return: adjusted time, offset hours
+    @param time_v: time object in utc time
+    @param tz: the timezone to convert the time to utc
+    @return: adjusted time, offset hours
     """
 
     now_dt = datetime.datetime.utcnow()
@@ -403,9 +396,9 @@ def convert_to_utc(time_v, tz):
 def convert_from_utc(time_v, tz):
     """ Convert a utc time to a tz timezone time
 
-    :param time_v: time object in utc time
-    :param tz: the timezone to convert the time to
-    :return: adjusted time
+    @param time_v: time object in utc time
+    @param tz: the timezone to convert the time to
+    @return: adjusted time
     """
     now_dt = datetime.datetime.now()
     date = now_dt.date()
@@ -419,8 +412,8 @@ def convert_from_utc(time_v, tz):
 def timed(f):
     """Measures the time(seconds) a f function takes to return a result
 
-    :param f: function
-    :return: the result of the function
+    @param f: function
+    @return: the result of the function
     """
 
     @wraps(f)
@@ -431,3 +424,17 @@ def timed(f):
         print "%s took %d seconds to finish" % (f.__name__, elapsed)
         return result
     return wrapper
+
+
+def zipdir(path, zip_file):
+    """
+    Creates a zip file for a directory tree
+    @param path: path to save the zip file
+    @type path: str
+    @param zip_file: an open file
+    @type zip_file: zipfile.ZipFile
+
+    """
+    for root, dirs, files in os.walk(path):
+        for file_ in files:
+            zip_file.write(os.path.join(root, file_))
