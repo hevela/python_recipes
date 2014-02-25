@@ -2,6 +2,7 @@ __author__ = 'velocidad'
 from urllib2 import urlopen, URLError
 from urlparse import urlsplit
 
+# noinspection PyPackageRequirements
 import oembed
 
 SHORT_URL_DOMAINS = [
@@ -94,7 +95,7 @@ class Consumer():
     def __init__(self, req_format="json"):
         self.format = req_format
         self.consumer = oembed.OEmbedConsumer()
-        self.init_endpoints(self.consumer, self.format)
+        self.init_endpoints()
 
     def get_oembed(self, req_url):
         """
@@ -110,26 +111,20 @@ class Consumer():
         response = self.consumer.embed(req_url)
         return response.getData()
 
-    @staticmethod
-    def init_endpoints(selfconsumer, req_format):
+    def init_endpoints(self):
         """
         Add all the endpoints to the OEmbedConsumer object
-
-        @param selfconsumer: the OEmbedConsumer object
-        @type selfconsumer: object
-        @param req_format: request format, currently only JSON
-        @type req_format: str
         """
         for provider in REGEX_PROVIDERS:
             try:
-                endpoint_url = provider[u'endpoint'] % req_format
+                endpoint_url = provider[u'endpoint'] % self.format
             except TypeError:
                 endpoint_url = provider[u'endpoint']
 
             endpoint = oembed.OEmbedEndpoint(
                 endpoint_url,
                 provider[u'regex'])
-            selfconsumer.addEndpoint(endpoint)
+            self.consumer.addEndpoint(endpoint)
 
     @staticmethod
     def unshort_url(geturl):
