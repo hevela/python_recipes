@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 __author__ = 'velocidad'
 from urllib2 import urlopen, URLError
 from urlparse import urlsplit
@@ -225,11 +226,6 @@ REGEX_PROVIDERS = [
     dict(hostname=('yandex.ru',),
          regex=['http://video.yandex.ru/users/*/view/*'],
          endpoint='http://video.yandex.ru/oembed.json'),
-    dict(hostname=('bambuser.com',),
-         regex=['http://bambuser.com/chanel/*/broadcast/*',
-                'http://bambuser.com/chanel/*',
-                'http://bambuser.com/v/*'],
-         endpoint='http://api.dipdive.com/oembed.json'),
     dict(hostname=('revision3.com',),
          regex=['http://*revision3.com/*',
                 'http://revision3.com/*'],
@@ -272,16 +268,9 @@ REGEX_PROVIDERS = [
     dict(hostname=('twitter.com',),
          regex=['https://twitter.com/*/status*/*'],
          endpoint='https://api.twitter.com/1/statuses/oembed.json'),
-    dict(hostname=('photobucket.com', 'img.photobucket.com'),
-         regex=['regex:.*photobucket\\.com/(albums|groups)/.+$'],
-         endpoint='http://photobucket.com/oembed'),
     dict(hostname=('www.dailymotion.com',),
          regex=['http://www.dailymotion.com/video/*'],
          endpoint='http://www.dailymotion.com/services/oembed'),
-    dict(hostname=('clikthrough.com', 'www.clikthrough.com'),
-         regex=['http://*.clikthrough.com/theater/video/*',
-                'http://clikthrough.com/theater/video/*'],
-         endpoint='http://clikthrough.com/services/oembed'),
     dict(hostname=('dotsub.com',),
          regex=['http://dotsub.com/view/*'],
          endpoint='http://dotsub.com/services/oembed'),
@@ -293,10 +282,6 @@ REGEX_PROVIDERS = [
          regex=['http://official.fm/tracks/*',
                 'http://official.fm/playlists/*'],
          endpoint='http://official.fm/services/oembed.json'),
-    dict(hostname=('vhx.tv',),
-         regex=['http://vhx.tv/*',
-                'https://vhx.tv/*'],
-         endpoint='http://vhx.tv/services/oembed.json'),
     dict(hostname=('www.nfb.ca',),
          regex=['http://*.nfb.ca/film/*',
                 'http://nfb.ca/film/*'],
@@ -316,11 +301,11 @@ REGEX_PROVIDERS = [
          endpoint='http://soundcloud.com/oembed'),
     dict(hostname=('www.screenr.com',),
          regex=['http://www.screenr.com/*', 'http://screenr.com/*'],
-         endpoint='http://www.screenr.com/api/oembed.json'),
+         endpoint='http://www.screenr.com/api/oembed.json')
 ]
 
 
-class Consumer():
+class Consumer(object):
     def __init__(self):
         self.consumer = oembed.OEmbedConsumer()
         self.init_endpoints()
@@ -336,10 +321,12 @@ class Consumer():
         @rtype: dict
         """
         req_url = self.unshort_url(req_url)
-        extra = None
+
         if "wordpress" in req_url:
             extra = {'for': 'me'}
-        response = self.consumer.embed(req_url, opt=extra)
+            response = self.consumer.embed(req_url, opt=extra)
+        else:
+            response = self.consumer.embed(req_url)
         return response.getData()
 
     def init_endpoints(self):
@@ -389,7 +376,6 @@ if __name__ == "__main__":
         'http://www.collegehumor.com/video/3922232/prank-war-7-the-half-million-dollar-shot',
         'http://www.jest.com/video/197394/paul-ryan-rap',
         'http://www.nfb.ca/film/aboriginality',
-        #'http://www.scribd.com/doc/14850258/Research-Motives-of-Vinyl-Use-Author-Robert-Arndt',
         'http://dotsub.com/view/665bd0d5-a9f4-4a07-9d9e-b31ba926ca78',
         'http://www.rdio.com/artist/The_Black_Keys/album/Brothers/',
         'http://www.ifixit.com/Teardown/iPhone-4-Teardown/3130/1',
@@ -402,7 +388,6 @@ if __name__ == "__main__":
         'http://www.mixcloud.com/TechnoLiveSets/jon_rundell-live-electrobeach-festival-benidorm-16-08-2013/',
         'http://screenr.com/3jns',
         'http://www.funnyordie.com/videos/a7311134ac/patton-oswalt-in-heavy-metal',
-        #'http://polldaddy.com/ratings/39/',
         'http://www.ted.com/talks/jill_bolte_taylor_s_powerful_stroke_of_insight.html',
         'http://www.videojug.com/film/how-to-tie-a-knot-braid',
         'http://videos.sapo.pt/dNbiosGa9YZHfLrhkA88',
@@ -421,11 +406,9 @@ if __name__ == "__main__":
         'http://s0.geograph.org.uk/geophotos/02/92/87/2928776_72cdbeab.jpg',
         'http://geo.hlipp.de/photos/02/02/020260_dcfdbf8e.jpg',
         'http://s1.channel.geographs.org/photos/00/07/000773_e1e23765_120x120.jpg',
-        #'http://coub.com/view/ufp6',
         'https://speakerdeck.com/wallat/why-backbone',
         'https://alpha.app.net/breakingnews/post/9153521',
         'http://blip.tv/nostalgiacritic/nostalgia-critic-sailor-moon-6625851',
-        #'http://yfrog.com/jukynnj',
         'http://instagram.com/p/V8UMy0LjpX/',
         'https://soundcloud.com/devolverdigital/sets/hotline-miami-official',
         'http://on.aol.com/video/plans-to-clone-john-lennon-using-one-of-his-teeth-517906689',
@@ -435,19 +418,15 @@ if __name__ == "__main__":
         'http://www.dailymile.com/people/EddieJ3/entries/24776213',
         'https://sketchfab.com/show/b7LzIm8JrnPw4GBDOMBNGYc39qM',
         'http://www.meetup.com/PHPColMeetup/photos/',
-        #'http://tv.majorleaguegaming.com/video/curse-ny-vs-wild-isolation-game-2-open-round-6-umg-philly--d25MZVZRRVJPUm8=',
-        #'https://gist.github.com/Denkoyushi/9359112',
         'http://video.yandex.ru/users/mumu-1/view/234/',
-        'http://bambuser.com/v/4410901',
         'https://twitter.com/chuchoraw/status/440925264923471872',
-        'http://media.photobucket.com/user/staffpicks/media/Animated_GIFs/ice-1.gif.html',
-        'http://static2.clikthrough.com/clik-prod/player/v2_13_2/clikPlayer.swf?videoId=1&config=aol_ikea_2010&rurl=',
-        'https://embed.vhx.tv/p/334/indie-game-the-movie-special-edition-extras',
         'http://wordpress.tv/2013/11/19/joe-dolson-accessibility-and-wordpress-developing-for-the-whole-world/'
     ]
+    import pprint
+    pp = pprint.PrettyPrinter(indent=4)
     for url in test_urls:
         print "\n________________________________"
         print url
-        print "\n________________________________"
+        print "\n"
         embed = consumer.get_oembed(url)
-        print embed, "\n\n=================================\n\n"
+        pp.pprint(embed)

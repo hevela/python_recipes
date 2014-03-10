@@ -156,6 +156,15 @@ def validate_url(url):
         return False
 
 
+def get_url_domain(url):
+    if validate_url(url):
+        parsed_uri = urlparse(url)
+        domain = '{uri.scheme}://{uri.netloc}/'.format(uri=parsed_uri)
+        return domain
+    else:
+        return None
+
+
 def validate_username(strng):
     """Checks for a valid username (alphanumeric with underscores/hypens/dots)
 
