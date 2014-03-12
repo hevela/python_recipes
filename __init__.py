@@ -14,7 +14,6 @@ from functools import wraps
 from urlparse import urlparse
 
 from django.shortcuts import HttpResponse
-from django.core.validators import email_re
 
 #-----libs for write_pdf
 #import cgi
@@ -349,7 +348,12 @@ def is_valid_email(email):
     >>> is_valid_email("foobar")
     False
     """
-    return True if email_re.match(email) else False
+    try:
+        from django.core.validators import email_re
+        return True if email_re.match(email) else False
+    except ImportError:
+        from django.core.validators import validate_email
+        return True if validate_email(email) else False
 
 
 def scale_dimensions(width, height, longest_side):
