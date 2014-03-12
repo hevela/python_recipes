@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
-from python_recipes import unique_from_array
+import urllib2
+from bs4 import BeautifulSoup
+from python_recipes import unique_from_array, validate_url, get_url_domain
 
 __author__ = 'velocidad'
 from urllib2 import urlopen, URLError
@@ -8,6 +10,37 @@ from urlparse import urlsplit
 # noinspection PyPackageRequirements
 
 import oembed
+
+FAILED_EXPECTATIONS = "One of the required parameters is not valid or is " \
+                      "missing"
+
+OEMBED_DATA_MISMATCH = "The returned oEmbed type is not the required type"
+
+REMOTE_SERVER_ERROR = "The remote service has encountered an error"
+
+OEMBED_ERRORS = {
+    "failed_expectations": {
+        "code": 2419,
+        "message": FAILED_EXPECTATIONS,
+        "type": "error"
+    },
+    "oembed_data_mismatch": {
+        "code": 2420,
+        "message": OEMBED_DATA_MISMATCH,
+        "type": "error"
+    },
+    "remote_server_error": {
+        "code": 2421,
+        "message": REMOTE_SERVER_ERROR,
+        "type": "error"
+    }
+}
+
+IMAGE_EXT = ['jpg', 'png', 'jpeg', 'gif', 'bmp', 'svg']
+VIDEO_EXT = ['mp4', 'ogg']
+AUDIO_EXT = ['mp3', 'ogg', 'wav', 'aac', 'aiff']
+PAGE_EXT = ['html', 'jsp', 'php', 'asp', 'aspx', 'htm', 'cgi', 'xhtml',
+            'asx', 'do', 'jspx']
 
 SHORT_URL_DOMAINS = [
     'tinyurl.com',
@@ -313,7 +346,7 @@ class Consumer(object):
         self.consumer = oembed.OEmbedConsumer()
         self.init_endpoints()
 
-    def get_oembed(self, req_url):
+    def get_oembed(self, req_url, embed_type=""):
         """
         Takes an URL, queries the corresponding endpoint and return a dict
         with the oembed data
@@ -325,12 +358,56 @@ class Consumer(object):
         """
         req_url = self.unshort_url(req_url)
 
-        if "wordpress" in req_url:
-            extra = {'for': 'me'}
-            response = self.consumer.embed(req_url, opt=extra)
+        try:
+            if "wordpress" in req_url:
+                extra = {'for': 'me'}
+                response = self.consumer.embed(req_url, opt=extra)
+            else:
+                response = self.consumer.embed(req_url)
+        except oembed.OEmbedNoEndpoint:
+            #No oembed provider
+
+            #check if is a file url
+            ext = req_url.split('.')
+            #up to 4 letter ext
+            ext = ext[-1].lower()
+            if len(ext) < 5:
+                _next = False
+                if ext in AUDIO_EXT and embed_type == 'audio':
+                    _next = True
+                elif ext in VIDEO_EXT and embed_type == 'video':
+                    _next = True
+                elif ext in IMAGE_EXT and embed_type == 'photo':
+                    _next = True
+                elif embed_type == 'link':
+                    _next = True
+
+                if _next:
+                    if ext in PAGE_EXT:
+                        embed, code = self.crawl_page(req_url)
+                        embed['type'] = embed_type
+                        data = (self.validate_metadata(embed), code)
+                    else:
+                        #form json for file
+                        data = self.json_for_link(req_url, embed_type)
+                else:
+                    data = (OEMBED_ERRORS['oembed_data_mismatch'], 400)
+
+            else:
+                if embed_type != 'link':
+                    data = (OEMBED_ERRORS['oembed_data_mismatch'], 400)
+                else:
+                    embed, code = self.crawl_page(req_url)
+                    embed['type'] = embed_type
+                    data = (self.validate_metadata(embed), code)
         else:
-            response = self.consumer.embed(req_url)
-        return response.getData()
+            embed = response.getData()
+            if embed['type'] == embed_type:
+                embed = self.validate_metadata(embed)
+                data = (embed, 200)
+            else:
+                data = (OEMBED_ERRORS['oembed_data_mismatch'], 400)
+        return data
 
     def init_endpoints(self):
         """
@@ -364,6 +441,150 @@ class Consumer(object):
                 pass
 
         return geturl
+
+    def crawl_page(self, url):
+        req = urllib2.Request(url, headers={'User-Agent': "Magic Browser"})
+        response = urllib2.urlopen(req)
+        text = response.read()
+        code = response.getcode()
+        if 200 >= code < 300:
+            soup = BeautifulSoup(text)
+            title = soup.title.contents[0]
+            try:
+                subtitle = soup.h1.contents[0].text
+            except AttributeError:
+                subtitle = ""
+            images = self.get_images(soup, url)
+            description = self.get_description(soup)
+
+            return dict(title=title, url=url, subtitle=subtitle, images=images,
+                        description=description), 200
+
+        else:
+            return OEMBED_ERRORS['remote_server_error'], 400
+
+    @staticmethod
+    def get_images(soup, url):
+        metas = [{'property': 'og:image'},
+                 {'name': 'og:image'}]
+        link = {'rel': 'image_src'}
+        imgs = []
+
+        for m_tag in metas:
+            descr = soup.find_all('meta', attrs=m_tag)
+            if descr:
+                try:
+                    descr_text = descr[0]['content']
+                except IndexError:
+                    continue
+                else:
+                    if not descr_text:
+                        continue
+                    else:
+                        if descr_text.startswith('//'):
+                            descr_text = descr_text.replace('//', 'http://')
+                        imgs.append(descr_text)
+        descr = soup.find_all('link', attrs=link)
+        if descr:
+            try:
+                descr_text = descr[0]['href']
+            except IndexError:
+                pass
+            else:
+                if descr_text:
+                    if descr_text.startswith('//'):
+                            descr_text = descr_text.replace('//', 'http://')
+                    imgs.append(descr_text)
+
+        imgs_tags = soup.find_all('img')[:3]
+        for img in imgs_tags:
+            src = img['src']
+            if not validate_url(src):
+                if src[0] == '/':
+                    src = get_url_domain(url) + src[1:]
+                elif url[-1] == '/':
+                    src = url + src
+                else:
+                    src = url + '/' + src
+            if src.startswith('//'):
+                src = src.replace('//', 'http://')
+            imgs.append(src)
+        return imgs
+
+    def get_description(self, soup):
+        metas = [{'itemprop': 'description'},
+                 {'name': 'description'},
+                 {'property': 'og:description'},
+                 {'name': 'og:description'}]
+        for m_tag in metas:
+            description = self.desc(m_tag, soup)
+            if description:
+                return description
+        else:
+            #No description found
+            return ''
+
+    @staticmethod
+    def desc(meta, soup):
+        descr = soup.find_all('meta', attrs=meta)
+        if descr:
+            try:
+                descr_text = descr[0]['content']
+            except IndexError:
+                return False
+            else:
+                if not descr_text:
+                    return False
+                else:
+                    return descr_text
+
+    def json_for_link(self, url, _type):
+        req = urllib2.Request(url, headers={'User-Agent': "Magic Browser"})
+        response = urllib2.urlopen(req)
+        text = response.read()
+        code = response.getcode()
+        if 200 >= code < 300 and text:
+            title = url.split('/')[-1]
+            response = dict(title=title, url=url, type=_type)
+            if _type in ['photo', 'video']:
+                response['width'] = 0
+                response['height'] = 0
+            return self.validate_metadata(response), 200
+        else:
+            return OEMBED_ERRORS['remote_server_error'], 400
+
+    @staticmethod
+    def validate_metadata(embed):
+        emb = embed.copy()
+        if 'author_name' not in emb:
+            emb['author_name'] = ''
+        if 'title' not in emb:
+            emb['title'] = ''
+        if 'description' not in emb:
+            if 'video_description' not in emb:
+                emb['description'] = ''
+            else:
+                emb['description'] = emb['video_description']
+
+        if 'thumbnail_url' not in emb:
+            if 'thumbnail' not in emb:
+                emb['thumbnail_url'] = ''
+                emb['thumbnail_width'] = 0
+                emb['thumbnail_height'] = 0
+            else:
+                emb['thumbnail_url'] = emb['thumbnail']
+        emb['thumbnail_width'] = int(emb['thumbnail_width'])
+        emb['thumbnail_height'] = int(emb['thumbnail_height'])
+
+        if emb['thumbnail_url'].startswith('//'):
+            emb['thumbnail_url'] = emb['thumbnail_url'].replace('//', 'http://')
+
+        types_with_sizes = ['photo', 'video', 'rich']
+        if emb['type'] in types_with_sizes:
+            emb['width'] = int(emb['width'])
+            emb['height'] = int(emb['height'])
+
+        return emb
 
 
 def test_this():
@@ -427,6 +648,7 @@ def test_this():
         'http://wordpress.tv/2013/11/19/joe-dolson-accessibility-and-wordpress-developing-for-the-whole-world/'
     ]
     import pprint
+
     pp = pprint.PrettyPrinter(indent=4)
     keys = []
     for url in test_urls:
@@ -439,6 +661,7 @@ def test_this():
 
     keys = unique_from_array(keys)
     print keys
+
 
 if __name__ == "__main__":
     test_this()
