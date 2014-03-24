@@ -348,11 +348,14 @@ class Consumer(object):
 
     def get_oembed(self, req_url, embed_type=""):
         """
-        Takes an URL, queries the corresponding endpoint and return a dict
-        with the oembed data
+        Takes an URL, queries the corresponding endpoint and return a tuple
+        with the oembed data in a dict and a 200 code in case of a successful
+        retrieval or a dict containing the error description and a 400 code
 
         @param req_url: The url to query
         @type req_url: str
+        @param embed_type: the expected response type of the oEmbed
+        @type embed_type: str
         @return: The oembed dict
         @rtype: dict
         """
@@ -379,8 +382,9 @@ class Consumer(object):
                     _next = True
                 elif ext in IMAGE_EXT and embed_type == 'photo':
                     _next = True
-                elif embed_type == 'link':
+                elif embed_type == 'link' or embed_type == '':
                     _next = True
+                    embed_type = 'link'
 
                 if _next:
                     if ext in PAGE_EXT:
@@ -394,19 +398,24 @@ class Consumer(object):
                     data = (OEMBED_ERRORS['oembed_data_mismatch'], 400)
 
             else:
-                if embed_type != 'link':
-                    data = (OEMBED_ERRORS['oembed_data_mismatch'], 400)
+                if embed_type:
+                    if embed_type != 'link':
+                        data = (OEMBED_ERRORS['oembed_data_mismatch'], 400)
+                        return data
                 else:
-                    embed, code = self.crawl_page(req_url)
-                    embed['type'] = embed_type
-                    data = (self.validate_metadata(embed), code)
+                    embed_type = 'link'
+                embed, code = self.crawl_page(req_url)
+                embed['type'] = embed_type
+                data = (self.validate_metadata(embed), code)
         else:
             embed = response.getData()
-            if embed['type'] == embed_type:
-                embed = self.validate_metadata(embed)
-                data = (embed, 200)
-            else:
-                data = (OEMBED_ERRORS['oembed_data_mismatch'], 400)
+            if embed_type:
+                if embed['type'] != embed_type:
+                    data = (OEMBED_ERRORS['oembed_data_mismatch'], 400)
+                    return data
+            embed = self.validate_metadata(embed)
+            data = (embed, 200)
+
         return data
 
     def init_endpoints(self):
@@ -443,11 +452,20 @@ class Consumer(object):
         return geturl
 
     def crawl_page(self, url):
+        """
+        Got to the url and tries to extract relevant data to form a response
+        like oEmbed
+        @param url: The url to extract info
+        @type url: str
+        @return: a tuple containing a dictionary with the basic oEmbed fields
+        and a response code 200 for success, 400 for errors
+        @rtype: tuple
+        """
         req = urllib2.Request(url, headers={'User-Agent': "Magic Browser"})
         response = urllib2.urlopen(req)
         text = response.read()
         code = response.getcode()
-        if 200 >= code < 300:
+        if 200 >= code < 400:
             soup = BeautifulSoup(text)
             title = soup.title.contents[0]
             try:
@@ -465,6 +483,17 @@ class Consumer(object):
 
     @staticmethod
     def get_images(soup, url):
+        """ Takes a soup object and search for the relevant images in the
+        document
+
+        @param soup: A beautiful Soup HTML document object
+        @type soup: BeautifulSoup
+        @param url: the original url, used to form absolute links from
+        relative urls
+        @type url: str
+        @return: a list of images
+        @rtype: list
+        """
         metas = [{'property': 'og:image'},
                  {'name': 'og:image'}]
         link = {'rel': 'image_src'}
@@ -498,7 +527,10 @@ class Consumer(object):
 
         imgs_tags = soup.find_all('img')[:3]
         for img in imgs_tags:
-            src = img['src']
+            try:
+                src = img['src']
+            except KeyError:
+                continue
             if not validate_url(src):
                 if src[0] == '/':
                     src = get_url_domain(url) + src[1:]
@@ -512,6 +544,13 @@ class Consumer(object):
         return imgs
 
     def get_description(self, soup):
+        """
+        Takes a soup object and tries to extract the description of the page
+        @param soup: a Beautiful Soup object
+        @type soup: BeautifulSoup
+        @return: the description of the page, if found
+        @rtype: str
+        """
         metas = [{'itemprop': 'description'},
                  {'name': 'description'},
                  {'property': 'og:description'},
@@ -526,6 +565,13 @@ class Consumer(object):
 
     @staticmethod
     def desc(meta, soup):
+        """
+        Search a soup object for a specific meta tag
+        @param meta: the meta to search for
+        @param soup: a Beautiful Soup object
+        @type soup: BeautifulSoup
+        @return:
+        """
         descr = soup.find_all('meta', attrs=meta)
         if descr:
             try:
@@ -539,6 +585,15 @@ class Consumer(object):
                     return descr_text
 
     def json_for_link(self, url, _type):
+        """
+        forms a basic dict for a file url
+        @param url: URL of a file
+        @type url: str
+        @param _type: file type
+        @type _type: str
+        @return: a tuple containing a dict and a response code
+        @rtype: tuple
+        """
         req = urllib2.Request(url, headers={'User-Agent': "Magic Browser"})
         response = urllib2.urlopen(req)
         text = response.read()
@@ -555,6 +610,14 @@ class Consumer(object):
 
     @staticmethod
     def validate_metadata(embed):
+        """
+        tries to standardize a oEmbed response, checks for fields named
+        different, and adds requiered keys for a valid oEmbed response.
+        If a key is not found, it's created with value 0, or empty.
+        @param embed: a dictionary containing a oEmbed response,
+        or similar response
+        @return: a standarized oEmbed response
+        """
         emb = embed.copy()
         if 'author_name' not in emb:
             emb['author_name'] = ''
@@ -573,6 +636,10 @@ class Consumer(object):
                 emb['thumbnail_height'] = 0
             else:
                 emb['thumbnail_url'] = emb['thumbnail']
+        if 'thumbnail_width' not in emb:
+            emb['thumbnail_width'] = 0
+        if 'thumbnail_height' not in emb:
+            emb['thumbnail_height'] = 0
         emb['thumbnail_width'] = int(emb['thumbnail_width'])
         emb['thumbnail_height'] = int(emb['thumbnail_height'])
 
@@ -581,8 +648,12 @@ class Consumer(object):
 
         types_with_sizes = ['photo', 'video', 'rich']
         if emb['type'] in types_with_sizes:
-            emb['width'] = int(emb['width'])
-            emb['height'] = int(emb['height'])
+            try:
+                emb['width'] = int(emb['width'])
+                emb['height'] = int(emb['height'])
+            except ValueError:
+                emb['width'] = 480
+                emb['height'] = 270
 
         return emb
 
