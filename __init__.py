@@ -156,6 +156,16 @@ def validate_url(url):
 
 
 def get_url_domain(url):
+    """Returns the base domain for a valid URL
+
+    @param url: string object, the url to get the base url
+    @return: the base domain or None if the url is not valid
+    >>> get_url_domain("http://pyvideo.org/video/401/pycon-2011--exhibition-of-atrocity")
+    http://pyvideo.org/
+    >>> get_url_domain("asieselabarrote")
+    None
+
+    """
     if validate_url(url):
         parsed_uri = urlparse(url)
         domain = '{uri.scheme}://{uri.netloc}/'.format(uri=parsed_uri)

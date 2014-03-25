@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import urllib2
 from bs4 import BeautifulSoup
-from python_recipes import unique_from_array, validate_url, get_url_domain
+from python_recipes import validate_url, get_url_domain
 
 __author__ = 'velocidad'
 from urllib2 import urlopen, URLError
@@ -721,17 +721,12 @@ def test_this():
     import pprint
 
     pp = pprint.PrettyPrinter(indent=4)
-    keys = []
     for url in test_urls:
         print "\n________________________________"
         print url
         print "\n"
         embed = consumer.get_oembed(url)
         pp.pprint(embed)
-        keys += embed.keys()
-
-    keys = unique_from_array(keys)
-    print keys
 
 
 if __name__ == "__main__":
