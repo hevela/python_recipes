@@ -120,7 +120,9 @@ REGEX_PROVIDERS = [
          endpoint='http://www.youtube.com/oembed'),
     dict(hostname=('www.flickr.com',),
          regex=['http://*.flickr.com/*',
-                'http://flickr.com/*'],
+                'http://flickr.com/*',
+                'https://*.flickr.com/*',
+                'https://flickr.com/*'],
          endpoint='http://www.flickr.com/services/oembed'),
     dict(hostname=('rdio.com',),
          regex=['http://*.rdio.com/artist/*',
@@ -661,6 +663,7 @@ class Consumer(object):
 def test_this():
     consumer = Consumer()
     test_urls = [
+        """
         'https://ifttt.com/recipes/107745',
         'http://www.youtube.com/watch?v=-UUx10KOWIE',
         'http://flickr.com/photos/bees/2362225867/',
@@ -717,6 +720,13 @@ def test_this():
         'http://video.yandex.ru/users/mumu-1/view/234/',
         'https://twitter.com/chuchoraw/status/440925264923471872',
         'http://wordpress.tv/2013/11/19/joe-dolson-accessibility-and-wordpress-developing-for-the-whole-world/'
+        """
+        'http://www.flickr.com/photos/playstationblog/13470945385/',
+        'http://www.flickr.com/photos/playstationblog/13454063233/',
+        'http://www.flickr.com/photos/playstationblog/',
+        'http://www.flickr.com/photos/playstationblog/sets/',
+        'https://www.flickr.com/photos/nataliaviana/12646301804/in/explore-2014-02-19'
+
     ]
     import pprint
 
