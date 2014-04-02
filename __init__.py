@@ -460,4 +460,5 @@ def zipdir(path, zip_file):
     """
     for root, dirs, files in os.walk(path):
         for file_ in files:
+            print file_
             zip_file.write(os.path.join(root, file_))
