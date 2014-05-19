@@ -14,6 +14,7 @@ from functools import wraps
 from urlparse import urlparse
 
 from django.shortcuts import HttpResponse
+from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
 
 #-----libs for write_pdf
 #import cgi
@@ -42,6 +43,65 @@ def response_json(content, status_code):
     return HttpResponse(content=content,
                         status=status_code,
                         mimetype='application/json')
+
+
+def paginate_results(results, base_url, search_term, results_per_page,
+                     current_page):
+    """
+    Paginates an iterable object (just for Django)
+
+    @param results: An iterable object, like a list, or a queryset
+    @type results: iterable
+    @param base_url: the base url of the search or pagination api
+    eg. "http://server.com/search/"
+    @type base_url: str
+    @param search_term: The search term to form the next and prev URL
+    @type search_term: str
+    @param results_per_page: Number of results per page
+    @type results_per_page: int
+    @param current_page: The number of the current page
+    @type current_page: int
+    @return: Api response
+    @rtype: Response
+    """
+    paginator = Paginator(results, results_per_page)
+    page = current_page
+    try:
+        response = paginator.page(page)
+    except PageNotAnInteger:
+        # If page is not an integer, deliver first page.
+        page = 1
+        response = paginator.page(1)
+    except EmptyPage:
+        page = paginator.num_pages
+        # If page is out of range (e.g. 9999), deliver last page of results.
+        response = paginator.page(page)
+
+    if response.has_next():
+        next_p = int(page) + 1
+
+        next_url = '?'.join((base_url, urlencode(dict(search_term=search_term,
+                                                      limit=results_per_page,
+                                                      page=next_p))))
+    else:
+        next_url = None
+
+    if response.has_previous():
+        prev_p = int(page) - 1
+        prev_url = '?'.join((base_url, urlencode(dict(search_term=search_term,
+                                                      limit=results_per_page,
+                                                      page=prev_p))))
+    else:
+        prev_url = None
+
+    result_response = dict(
+        count=len(results),
+        previous=prev_url,
+        next=next_url,
+        results=response.object_list)
+    return result_response
+
+
 
 
 def get_week_start_datetime_end_datetime_tuple(
